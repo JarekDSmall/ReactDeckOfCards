@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from './Card';
 
 function Deck() {
   const [deck, setDeck] = useState(null);
   const [currentCard, setCurrentCard] = useState(null);
-  const [isShuffling, setIsShuffling] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const drawInterval = useRef(null);
 
   useEffect(() => {
     createDeck();
@@ -16,9 +17,21 @@ function Deck() {
     setDeck(data);
   };
 
+  const drawSingleCard = async () => {
+    if (!deck) return;
+    const response = await fetch(`https://deckofcardsapi.com/api/deck/${deck.deck_id}/draw/?count=1`);
+    const data = await response.json();
+    if (data.remaining === 0) {
+      alert("Error: no cards remaining!");
+      return;
+    }
+    setCurrentCard(data.cards[0]);
+  };
+
   const drawCard = async () => {
     if (deck.remaining === 0) {
       alert('Error: no cards remaining!');
+      stopDrawing();
       return;
     }
     const response = await fetch(`https://deckofcardsapi.com/api/deck/${deck.deck_id}/draw/?count=1`);
@@ -27,19 +40,35 @@ function Deck() {
     setDeck(prevState => ({ ...prevState, remaining: prevState.remaining - 1 }));
   };
 
-  const shuffleDeck = async () => {
-    setIsShuffling(true);
-    const response = await fetch(`https://deckofcardsapi.com/api/deck/${deck.deck_id}/shuffle/`);
-    const data = await response.json();
-    setDeck(data);
-    setCurrentCard(null); // Remove the current card from the screen
-    setIsShuffling(false);
+  const startDrawing = () => {
+    setIsDrawing(true);
+    drawInterval.current = setInterval(drawCard, 1000);
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+    clearInterval(drawInterval.current);
+  };
+
+  const toggleDrawing = () => {
+    if (isDrawing) {
+      stopDrawing();
+    } else {
+      startDrawing();
+    }
   };
 
   return (
     <div>
-      <button onClick={drawCard} disabled={isShuffling}>Draw a Card</button>
-      <button onClick={shuffleDeck} disabled={isShuffling}>Shuffle Deck</button>
+      <button onClick={drawSingleCard} disabled={isDrawing}>
+        Draw a Card
+      </button>
+      <button onClick={toggleDrawing}>
+        {isDrawing ? 'Stop Drawing' : 'Start Drawing'}
+      </button>
+      <button onClick={shuffleDeck} disabled={isDrawing}>
+        Shuffle Deck
+      </button>
       {currentCard && <Card card={currentCard} />}
     </div>
   );
