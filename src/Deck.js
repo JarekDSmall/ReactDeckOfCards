@@ -17,6 +17,14 @@ function Deck() {
     setDeck(data);
   };
 
+  const shuffleDeck = async () => {
+    if (!deck) return;
+    const response = await fetch(`https://deckofcardsapi.com/api/deck/${deck.deck_id}/shuffle/`);
+    const data = await response.json();
+    setDeck(data);
+    setCurrentCard(null); // Remove the current card from the screen
+};
+
   const drawSingleCard = async () => {
     if (!deck) return;
     const response = await fetch(`https://deckofcardsapi.com/api/deck/${deck.deck_id}/draw/?count=1`);
